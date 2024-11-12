@@ -11,8 +11,9 @@ const db = new sqlite3.Database('./database.db', (err) => {
 
 // 创建表 tb_address_receive
 db.run(`CREATE TABLE IF NOT EXISTS tb_address_receive (
-  btc_address TEXT PRIMARY KEY,
+  btc_address varchar(64) PRIMARY KEY,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  tx_id varchar(64) ,
   update_time DATETIME,
   status INTEGER DEFAULT 0
 )`, (err) => {
@@ -35,7 +36,7 @@ const insertData = (btcAddress) => {
 };
 
 // 更新
-const updateData = (btcAddress, status) => {
+const updateStatus = (btcAddress, status) => {
     // const currentTime = new Date().toISOString();
     const sql = `UPDATE tb_address_receive SET status = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
     db.run(sql, [status, btcAddress], function(err) {
@@ -44,6 +45,18 @@ const updateData = (btcAddress, status) => {
     }
     console.log(`更新数据成功，影响的行数: ${this.changes}`);
     });
+};
+
+// 更新
+const updateTxId = (btcAddress, txId) => {
+  // const currentTime = new Date().toISOString();
+  const sql = `UPDATE tb_address_receive SET tx_id = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
+  db.run(sql, [txId, btcAddress], function(err) {
+  if (err) {
+    return console.error('更新数据失败：', err.message);
+  }
+  console.log(`更新数据成功，影响的行数: ${this.changes}`);
+  });
 };
 
 const getOneData = () => {
@@ -78,10 +91,39 @@ const getOneData2 = () => {
     });
 };
 
+const getOne = (address) => {
+  return new Promise((resolve, reject) => {
+      const sql = `SELECT * FROM tb_address_receive where btc_address = ?`;
+      db.all(sql, [address], (err, rows) => {
+          if (err) {
+              reject(err); // 查询失败，拒绝 Promise
+          } else {
+              resolve(rows); // 查询成功，返回数据
+          }
+      });
+  });
+};
+
+const getDatas = () => {
+  return new Promise((resolve, reject) => {
+      const sql = `SELECT * FROM tb_address_receive where status = 1 limit 100`;
+      db.all(sql, [], (err, rows) => {
+          if (err) {
+              reject(err); // 查询失败，拒绝 Promise
+          } else {
+              resolve(rows); // 查询成功，返回数据
+          }
+      });
+  });
+};
+
 // 导出所有操作
 module.exports = {
   insertData,
-  updateData,
+  updateStatus,
+  updateTxId,
   getOneData,
   getOneData2,
+  getDatas,
+  getOne,
 };

@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS tb_address_receive (
   btc_address TEXT PRIMARY KEY,           -- 接收地址，设为主键，确保唯一性
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间，默认当前时间
   update_time DATETIME,                -- 更新时间
-  status INTEGER DEFAULT 0                    -- 状态，默认为 0（未使用）
+  tx_id VARCHAR(64) default null, -- 交易id
+  status INTEGER DEFAULT 0                    -- 状态，0：未使用 1：前端已使用 2：支付成功 默认为 0（未使用）
 );
 
 
