@@ -1,10 +1,11 @@
 import sqlite3 from 'sqlite3';
+import logger from './logger';
 
 const db = new sqlite3.Database('./database.db', (err: Error | null) => {
   if (err) {
-    console.error('连接数据库失败：', err.message);
+    logger.error("连接数据库失败:", err.message);
   } else {
-    console.log('成功连接到 SQLite 数据库');
+    logger.info('成功连接到 SQLite 数据库');
   }
 });
 
@@ -18,9 +19,9 @@ db.run(`CREATE TABLE IF NOT EXISTS tb_address_receive (
   status INTEGER DEFAULT 0
 )`, (err) => {
   if (err) {
-    console.error('创建表失败：', err.message);
+    logger.error('创建表失败：', err.message);
   } else {
-    console.log('成功创建表 tb_address_receive');
+    logger.info('成功创建表tb_address_receive');
   }
 });
 
@@ -29,9 +30,9 @@ const insertData = (btcAddress: string): void => {
   const sql = `INSERT INTO tb_address_receive (btc_address) VALUES (?)`;
   db.run(sql, [btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
     if (err) {
-      console.error('插入数据失败：', err.message);
+      logger.error("插入数据失败：", err.message);
     } else {
-      console.log(`插入数据成功，行 ID: ${this.lastID}`);
+      logger.info("插入数据成功，行 ID:", this.lastID);
     }
   });
 };
@@ -41,9 +42,9 @@ const updateStatus = (btcAddress: string, status: number): void => {
   const sql = `UPDATE tb_address_receive SET status = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
   db.run(sql, [status, btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
     if (err) {
-      console.error('更新数据失败：', err.message);
+      logger.error('更新数据失败：', err.message);
     } else {
-      console.log(`更新数据成功，影响的行数: ${this.changes}`);
+      logger.info(`更新数据成功，影响的行数: `, this.changes);
     }
   });
 };
@@ -53,9 +54,9 @@ const updateTxId = (btcAddress: string, txId: string): void => {
   const sql = `UPDATE tb_address_receive SET tx_id = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
   db.run(sql, [txId, btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
     if (err) {
-      console.error('更新数据失败：', err.message);
+      logger.error('更新数据失败：', err.message);
     } else {
-      console.log(`更新数据成功，影响的行数: ${this.changes}`);
+      logger.info("更新数据成功，影响的行数:", this.changes);
     }
   });
 };
@@ -67,15 +68,15 @@ const getOneData = (): void => {
 
   db.get(sql, [], (err, row) => {
     if (err) {
-      console.error('查询数据失败：', err.message);
+      logger.error('查询数据失败：', err.message);
       return;
     }
 
     if (row) {
-      console.log('查询到的记录：', row);
+      logger.info('查询到的记录：', row);
       return row;
     } else {
-      console.log('没有找到对应的记录');
+      logger.info('没有找到对应的记录');
       return null;
     }
   });

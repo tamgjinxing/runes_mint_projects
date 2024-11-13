@@ -1,4 +1,5 @@
 import HttpRequest from './httputils2';
+import logger from './logger';
 
 const httpRequest = new HttpRequest();
 const TOKEN = "a174f2f9ac9c2692117215e3c23acd01eb35d3d0e84d094e39f678884c644411";
@@ -11,7 +12,7 @@ export async function getAddressUTXOs(address: string, runeId: string): Promise<
         const data = await httpRequest.get(url, headers);
         return data;
     } catch (error: any) {
-        console.error(error.message);
+        logger.error(error.message);
     }
 }
 
@@ -23,6 +24,6 @@ export async function getTransInfo(txId: string, address: string): Promise<any> 
         const data = await httpRequest.get(url, headers);
         return data;
     } catch (error: any) {
-        console.error(error.message);
+        logger.error(error.message);
     }
 }

@@ -1,4 +1,5 @@
 import * as callhttp from './callhttp';
+import logger from './logger';
 
 const mempool_interface_tx_url = "https://mempool.space/api/tx/";
 const unisat_interface_unisat_utxo_url = "https://open-api.unisat.io/v1/indexer/address/";   
@@ -36,7 +37,7 @@ async function parseTxInfo(tx: Tx, txId: string, targetAddress: string): Promise
     if (tx != null && tx.status.confirmed) {
         for (const vout of tx.vout) {
             if (vout.scriptpubkey_address === targetAddress) {
-                console.log("匹配地址，调用接口 GetRunesBalance!!!", targetAddress);
+                logger.info("匹配地址，调用接口 GetRunesBalance!!!", targetAddress);
                 
                 // 调用接口获取结果
                 const result: AddressUTXOResult = await callhttp.getAddressUTXOs(targetAddress, renuId);
@@ -48,12 +49,11 @@ async function parseTxInfo(tx: Tx, txId: string, targetAddress: string): Promise
                 for (const utxo of data.utxo) {
                     renuDatas.push(...utxo.runes);
                 }
-        
-                console.log("renuDatas:", renuDatas);
+                logger.info("renuDatas:", renuDatas);
             }
         }
     } else {
-        console.log("还未确认");
+        logger.info("还未确认")
     }
     
     return renuDatas;
@@ -61,7 +61,7 @@ async function parseTxInfo(tx: Tx, txId: string, targetAddress: string): Promise
 
 async function parseTxInfoNoData(address: string): Promise<any[]> {
     const renuDatas: any[] = []; // 根据具体的数据结构替换 any 类型
-    console.log("匹配地址，调用接口 GetRunesBalance!!!", address);
+    logger.info("匹配地址，调用接口 GetRunesBalance!!!", address);
                 
     // 调用接口获取结果
     const result: AddressUTXOResult = await callhttp.getAddressUTXOs(address, renuId);
@@ -74,7 +74,7 @@ async function parseTxInfoNoData(address: string): Promise<any[]> {
         renuDatas.push(...utxo.runes);
     }
 
-    console.log("renuDatas:", renuDatas);
+    logger.info("renuDatas:", renuDatas);
     
     return renuDatas;
 }

@@ -2,6 +2,7 @@ import * as bitcoin from 'bitcoinjs-lib';
 import * as bip39 from 'bip39';
 import BIP32Factory from 'bip32';
 import * as ecc from 'tiny-secp256k1';
+import logger from './logger';
 
 // 初始化 ECC 库
 bitcoin.initEccLib(ecc);
@@ -31,7 +32,7 @@ async function generateReceiveAddress(mnemonic: string, index: number): Promise<
     });
 
     if (address) {
-      console.log(`Taproot Address (bc1p): ${address}`);
+      logger.info("Taproot Address (bc1p):", address);
       resultSet.add(address);
     }
   }

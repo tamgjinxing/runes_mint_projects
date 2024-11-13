@@ -1,4 +1,3 @@
-// httputils2.ts
 class HttpRequest {
     constructor() {}
 
