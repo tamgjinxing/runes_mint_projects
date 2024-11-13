@@ -1,8 +1,8 @@
-// http.js
+// httputils2.ts
 class HttpRequest {
     constructor() {}
 
-    async get(url, headers = {}) {
+    async get(url: string, headers: Record<string, string> = {}): Promise<any> {
         try {
             const response = await fetch(url, {
                 method: 'GET',
@@ -12,12 +12,12 @@ class HttpRequest {
                 }
             });
             return await this.handleResponse(response);
-        } catch (error) {
+        } catch (error: any) {
             throw new Error(`GET request failed: ${error.message}`);
         }
     }
 
-    async post(url, headers = {}, data = {}) {
+    async post(url: string, headers: Record<string, string> = {}, data: any = {}): Promise<any> {
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -28,12 +28,12 @@ class HttpRequest {
                 body: JSON.stringify(data)
             });
             return await this.handleResponse(response);
-        } catch (error) {
+        } catch (error: any) {
             throw new Error(`POST request failed: ${error.message}`);
         }
     }
 
-    async handleResponse(response) {
+    private async handleResponse(response: Response): Promise<any> {
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);

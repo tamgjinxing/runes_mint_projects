@@ -1,14 +1,23 @@
 {
   "name": "runes_mint_projects",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "app.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "postbuild": "cp *.json dist/",
+    "start": "node dist/app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
   "dependencies": {
     "bip32": "^5.0.0-rc.0",
     "bip39": "^3.1.0",
