@@ -152,8 +152,10 @@ export {
   insertData,
   updateStatus,
   updateTxId,
+  updateStatusAndQuote,
   getOneData,
   getOneData2,
+  updateQuote,
   getDatas,
   getOne,
 };

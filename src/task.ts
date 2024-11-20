@@ -1,5 +1,6 @@
 import * as cron from 'node-cron';
 import * as sqlite3 from './sqlite3';
+import * as sqlite3other from './sqlite3other';
 import * as callhttp from './callhttp';
 import * as logic from './logic';
 import logger from './logger';
@@ -28,44 +29,48 @@ async function getDataFromDB(): Promise<void> {
             const address = row.btc_address;
             const txId = row.tx_id;
             const statuss = row.status;
-    
+
             let data = null;
-    
+
             if (txId == null) {
                 logger.info("table is not record txid");
-            }else {
+            } else {
                 // 调用接口获取交易信息
                 data = await callhttp.getTransInfo(txId, address);
                 logger.info("getTransInfo Result:", data);
             }
-    
+
             let runeDatas = null;
-            if( data != null) {
+            if (data != null) {
                 runeDatas = await logic.parseTxInfo(data, txId, address);
-            }else {
+            } else {
                 runeDatas = await logic.parseTxInfoNoData(address);
             }
             if (runeDatas.length > 0) {
                 let total = 0;
                 let spacedRune = "";
-    
+
                 for (const rune of runeDatas) {
                     spacedRune = rune.spacedRune;
                     total += Number(rune.amount);
                 }
                 logger.info("收到符文Name:", spacedRune, "共", total, "个");
-    
+
                 if (total > 0) {
                     sqlite3.updateStatus(address, 2);
+
+                    const currentDate = new Date();
+                    const currentSeconds = currentDate.getSeconds();
+                    sqlite3other.updateStatus("", 1, "PAID", currentSeconds)
                 }
-            }else {
+            } else {
                 logger.info("未找到确认到账的runes")
             }
         }
-    }else {
+    } else {
         logger.info("没有找到需要确认到账状态的记录")
     }
 }
 
 // 导出所有操作
-export { startTask,getDataFromDB };
+export { startTask, getDataFromDB };

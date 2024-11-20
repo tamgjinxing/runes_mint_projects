@@ -111,7 +111,7 @@ app.post('/saveQuote', (req: Request, res: Response) => {
         return res.status(400).send("缺少必要的参数");
       }
 
-      await sqlite3.updateTxId(btcAddress, quote);
+      await sqlite3.updateQuote(btcAddress, quote);
 
       const responseJson = {
         code: 200,
