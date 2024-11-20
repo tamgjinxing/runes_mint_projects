@@ -15,6 +15,7 @@ db.run(`CREATE TABLE IF NOT EXISTS tb_address_receive (
   btc_address varchar(64) PRIMARY KEY,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   tx_id varchar(64) ,
+   quote varchar(64),
   update_time DATETIME,
   status INTEGER DEFAULT 0
 )`, (err) => {
@@ -57,6 +58,28 @@ const updateTxId = (btcAddress: string, txId: string): void => {
       logger.error('更新数据失败：', err.message);
     } else {
       logger.info("更新数据成功，影响的行数:", this.changes);
+    }
+  });
+};
+
+const updateStatusAndQuote = (btcAddress: string, status: number, quote: string): void => {
+  const sql = `UPDATE tb_address_receive SET status = ?,quote=?, update_time = DATETIME('now') WHERE btc_address = ?`;
+  db.run(sql, [status, quote, btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
+    if (err) {
+      console.error('更新数据失败：', err.message);
+    } else {
+      console.log(`更新数据成功，影响的行数: ${this.changes}`);
+    }
+  });
+};
+
+const updateQuote = (btcAddress: string, quote: string): void => {
+  const sql = `UPDATE tb_address_receive SET quote = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
+  db.run(sql, [quote, btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
+    if (err) {
+      console.error('更新数据失败：', err.message);
+    } else {
+      console.log(`更新数据成功，影响的行数: ${this.changes}`);
     }
   });
 };

@@ -102,7 +102,31 @@ app.post("/saveTxId", (req: Request, res: Response) => {
   })();
 });
 
-task.startTask();
+app.post('/saveQuote', (req: Request, res: Response) => {
+  (async () => {
+    try {
+      const { quote, btcAddress } = req.body;
+
+      if (!quote || !btcAddress) {
+        return res.status(400).send("缺少必要的参数");
+      }
+
+      await sqlite3.updateTxId(btcAddress, quote);
+
+      const responseJson = {
+        code: 200,
+        msg: "success"
+      };
+
+      res.json(responseJson);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("保存 txid 出错");
+    }
+  })();
+});
+
+// task.startTask();
 
 const port = config.port;
 
