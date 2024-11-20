@@ -126,6 +126,17 @@ app.post('/saveQuote', (req: Request, res: Response) => {
   })();
 });
 
+app.get("/paid", async (req: Request, res: Response) => {
+  try {
+    const address = req.query.address as string;
+    task.paid(address);
+    res.send("Successful!!!");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error generating address");
+  }
+});
+
 // task.startTask();
 
 const port = config.port;

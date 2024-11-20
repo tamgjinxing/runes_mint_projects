@@ -72,5 +72,23 @@ async function getDataFromDB(): Promise<void> {
     }
 }
 
+async function paid(address: string): Promise<void> {
+    const rows = await sqlite3.getOne(address);
+    if (rows.length > 0) {
+        for (const row of rows) {
+            const address = row.btc_address;
+            const txId = row.tx_id;
+            const status = row.status;
+            const quote = row.quote;
+
+            sqlite3.updateStatus(address, 2);
+
+            const currentDate = new Date();
+            const currentSeconds = currentDate.getSeconds();
+            sqlite3other.updateStatus(quote, 1, "PAID", currentSeconds)
+        }
+    }
+}
+
 // 导出所有操作
-export { startTask, getDataFromDB };
+export { startTask, getDataFromDB, paid };
