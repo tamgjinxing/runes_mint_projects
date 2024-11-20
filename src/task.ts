@@ -83,9 +83,8 @@ async function paid(address: string): Promise<void> {
 
             sqlite3.updateStatus(address, 2);
 
-            const currentDate = new Date();
-            const currentSeconds = currentDate.getSeconds();
-            sqlite3other.updateStatus(quote, 1, "PAID", currentSeconds)
+            const timestampInSeconds = Math.floor(Date.now() / 1000);
+            sqlite3other.updateStatus(quote, 1, "PAID", timestampInSeconds)
         }
     }
 }
