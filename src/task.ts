@@ -28,7 +28,8 @@ async function getDataFromDB(): Promise<void> {
         for (const row of rows) {
             const address = row.btc_address;
             const txId = row.tx_id;
-            const statuss = row.status;
+            const status = row.status;
+            const quote = row.quote;
 
             let data = null;
 
@@ -61,33 +62,20 @@ async function getDataFromDB(): Promise<void> {
 
                     const currentDate = new Date();
                     const currentSeconds = currentDate.getSeconds();
-                    sqlite3other.updateStatus("", 1, "PAID", currentSeconds)
+                    sqlite3other.updateStatus(quote, 1, "PAID", currentSeconds);
+
+                    logger.info("修改mint_quote表中quote=", quote, "的paid=1，state=paid");
                 }
             } else {
-                logger.info("未找到确认到账的runes")
+                logger.info("未找到确认到账的runes");
             }
         }
     } else {
-        logger.info("没有找到需要确认到账状态的记录")
+        logger.info("没有找到需要确认到账状态的记录");
     }
 }
 
-async function paid(address: string): Promise<void> {
-    const rows = await sqlite3.getOne(address);
-    if (rows.length > 0) {
-        for (const row of rows) {
-            const address = row.btc_address;
-            const txId = row.tx_id;
-            const status = row.status;
-            const quote = row.quote;
 
-            sqlite3.updateStatus(address, 2);
-
-            const timestampInSeconds = Math.floor(Date.now() / 1000);
-            sqlite3other.updateStatus(quote, 1, "PAID", timestampInSeconds)
-        }
-    }
-}
 
 // 导出所有操作
-export { startTask, getDataFromDB, paid };
+export { startTask, getDataFromDB };

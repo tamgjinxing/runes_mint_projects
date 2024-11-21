@@ -1,115 +1,154 @@
-import sqlite3 from 'sqlite3';
-import logger from './logger';
+import sqlite3 from "sqlite3";
+import logger from "./logger";
 
-const db = new sqlite3.Database('./database.db', (err: Error | null) => {
-  if (err) {
-    logger.error("连接数据库失败:", err.message);
-  } else {
-    logger.info('成功连接到 SQLite 数据库');
+let db: sqlite3.Database | null = null;
+
+// 初始化数据库连接
+export const initializeDB = (): void => {
+  const path = global.config.runeMintDBPath;
+  logger.info("Database path:", path);
+
+  db = new sqlite3.Database(path, (err: Error | null) => {
+    if (err) {
+      logger.error("Failed to connect to database:", err.message);
+    } else {
+      logger.info("Successfully connected to SQLite database");
+
+      // 确保初始化时创建表
+      createTable();
+    }
+  });
+};
+
+/**
+ * 创建表 `tb_address_receive`
+ */
+const createTable = (): void => {
+  if (!db) {
+    throw new Error("Database not initialized. Call initializeDB() first.");
   }
-});
 
+  const sql = `
+    CREATE TABLE IF NOT EXISTS tb_address_receive (
+      btc_address VARCHAR(64) PRIMARY KEY,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      tx_id VARCHAR(64),
+      quote VARCHAR(64),
+      update_time DATETIME,
+      status INTEGER DEFAULT 0
+    )`;
 
-// 创建表 tb_address_receive
-db.run(`CREATE TABLE IF NOT EXISTS tb_address_receive (
-  btc_address varchar(64) PRIMARY KEY,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  tx_id varchar(64) ,
-   quote varchar(64),
-  update_time DATETIME,
-  status INTEGER DEFAULT 0
-)`, (err) => {
-  if (err) {
-    logger.error('创建表失败：', err.message);
-  } else {
-    logger.info('成功创建表tb_address_receive');
+  db.run(sql, (err) => {
+    if (err) {
+      logger.error("Failed to create table:", err.message);
+    } else {
+      logger.info("Table 'tb_address_receive' created successfully");
+    }
+  });
+};
+
+const getDB = (): sqlite3.Database => {
+  if (!db) {
+    throw new Error("Database not initialized. Call initializeDB() first.");
   }
-});
+  return db;
+};
 
-// 插入数据函数
+/**
+ * 插入一条数据
+ */
 const insertData = (btcAddress: string): void => {
   const sql = `INSERT INTO tb_address_receive (btc_address) VALUES (?)`;
-  db.run(sql, [btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
+  getDB().run(sql, [btcAddress], function (this: sqlite3.RunResult, err: Error | null) {
     if (err) {
-      logger.error("插入数据失败：", err.message);
+      logger.error("Failed to insert data:", err.message);
     } else {
-      logger.info("插入数据成功，行 ID:", this.lastID);
+      logger.info("Data inserted successfully, Row ID:", this.lastID);
     }
   });
 };
 
-// 更新状态函数
+/**
+ * 更新状态
+ */
 const updateStatus = (btcAddress: string, status: number): void => {
   const sql = `UPDATE tb_address_receive SET status = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
-  db.run(sql, [status, btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
+  getDB().run(sql, [status, btcAddress], function (this: sqlite3.RunResult, err: Error | null) {
     if (err) {
-      logger.error('更新数据失败：', err.message);
+      logger.error("Failed to update status:", err.message);
     } else {
-      logger.info(`更新数据成功，影响的行数: `, this.changes);
+      logger.info(`Status updated successfully, Rows affected: ${this.changes}`);
     }
   });
 };
 
-// 更新交易 ID 函数
+/**
+ * 更新交易 ID
+ */
 const updateTxId = (btcAddress: string, txId: string): void => {
   const sql = `UPDATE tb_address_receive SET tx_id = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
-  db.run(sql, [txId, btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
+  getDB().run(sql, [txId, btcAddress], function (this: sqlite3.RunResult, err: Error | null) {
     if (err) {
-      logger.error('更新数据失败：', err.message);
+      logger.error("Failed to update Tx ID:", err.message);
     } else {
-      logger.info("更新数据成功，影响的行数:", this.changes);
+      logger.info(`Tx ID updated successfully, Rows affected: ${this.changes}`);
     }
   });
 };
 
+/**
+ * 更新状态和报价
+ */
 const updateStatusAndQuote = (btcAddress: string, status: number, quote: string): void => {
-  const sql = `UPDATE tb_address_receive SET status = ?,quote=?, update_time = DATETIME('now') WHERE btc_address = ?`;
-  db.run(sql, [status, quote, btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
+  const sql = `UPDATE tb_address_receive SET status = ?, quote = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
+  getDB().run(sql, [status, quote, btcAddress], function (this: sqlite3.RunResult, err: Error | null) {
     if (err) {
-      console.error('更新数据失败：', err.message);
+      logger.error("Failed to update status and quote:", err.message);
     } else {
-      console.log(`更新数据成功，影响的行数: ${this.changes}`);
+      logger.info(`Status and quote updated successfully, Rows affected: ${this.changes}`);
     }
   });
 };
 
+/**
+ * 更新报价
+ */
 const updateQuote = (btcAddress: string, quote: string): void => {
   const sql = `UPDATE tb_address_receive SET quote = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
-  db.run(sql, [quote, btcAddress], function (this: sqlite3.RunResult, err: Error | null) { // 为 err 指定类型
+  getDB().run(sql, [quote, btcAddress], function (this: sqlite3.RunResult, err: Error | null) {
     if (err) {
-      console.error('更新数据失败：', err.message);
+      logger.error("Failed to update quote:", err.message);
     } else {
-      console.log(`更新数据成功，影响的行数: ${this.changes}`);
+      logger.info(`Quote updated successfully, Rows affected: ${this.changes}`);
     }
   });
 };
 
-// 其他代码保持不变
-// 获取一条数据
+/**
+ * 获取一条数据
+ */
 const getOneData = (): void => {
-  const sql = `SELECT * FROM tb_address_receive WHERE status = 0 limit 1`;
-
-  db.get(sql, [], (err, row) => {
+  const sql = `SELECT * FROM tb_address_receive WHERE status = 0 LIMIT 1`;
+  getDB().get(sql, [], (err, row) => {
     if (err) {
-      logger.error('查询数据失败：', err.message);
+      logger.error("Failed to fetch data:", err.message);
       return;
     }
-
     if (row) {
-      logger.info('查询到的记录：', row);
-      return row;
+      logger.info("Record found:", row);
     } else {
-      logger.info('没有找到对应的记录');
-      return null;
+      logger.info("No record found");
     }
   });
 };
 
-// 获取一条数据（返回 Promise）
+/**
+ * 获取一条数据（返回 Promise）
+ */
 const getOneData2 = (): Promise<any[]> => {
+  const sql = `SELECT * FROM tb_address_receive WHERE status = 0 LIMIT 1`;
   return new Promise((resolve, reject) => {
-    const sql = `SELECT * FROM tb_address_receive WHERE status = 0 limit 1`;
-    db.all(sql, [], (err, rows) => {
+    getDB().all(sql, [], (err, rows) => {
       if (err) {
         reject(err);
       } else {
@@ -119,11 +158,29 @@ const getOneData2 = (): Promise<any[]> => {
   });
 };
 
-// 根据地址查询数据
+/**
+ * 获取总数
+ */
+const getTotal = (): Promise<any[]> => {
+  const sql = `SELECT COUNT(1) AS total FROM tb_address_receive`;
+  return new Promise((resolve, reject) => {
+    getDB().all(sql, [], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+};
+
+/**
+ * 根据地址查询数据
+ */
 const getOne = (address: string): Promise<any[]> => {
+  const sql = `SELECT * FROM tb_address_receive WHERE btc_address = ?`;
   return new Promise((resolve, reject) => {
-    const sql = `SELECT * FROM tb_address_receive WHERE btc_address = ?`;
-    db.all(sql, [address], (err, rows) => {
+    getDB().all(sql, [address], (err, rows) => {
       if (err) {
         reject(err);
       } else {
@@ -133,11 +190,13 @@ const getOne = (address: string): Promise<any[]> => {
   });
 };
 
-// 获取多条数据
+/**
+ * 获取多条数据
+ */
 const getDatas = (): Promise<any[]> => {
+  const sql = `SELECT * FROM tb_address_receive WHERE status = 1 LIMIT 100`;
   return new Promise((resolve, reject) => {
-    const sql = `SELECT * FROM tb_address_receive WHERE status = 1 limit 100`;
-    db.all(sql, [], (err, rows) => {
+    getDB().all(sql, [], (err, rows) => {
       if (err) {
         reject(err);
       } else {
@@ -153,9 +212,10 @@ export {
   updateStatus,
   updateTxId,
   updateStatusAndQuote,
+  updateQuote,
   getOneData,
   getOneData2,
-  updateQuote,
-  getDatas,
+  getTotal,
   getOne,
+  getDatas,
 };

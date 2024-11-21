@@ -1,8 +1,8 @@
 import sqlite3 from 'sqlite3';
 
-const db = new sqlite3.Database('/home/appl/nutshell/data/mint/mint.sqlite3', (err: Error | null) => {
+const db = new sqlite3.Database(global.config.referMintDBPath, (err: Error | null) => {
     if (err) {
-        console.error('连接数据库失败：', err.message);
+        console.error('连接数据库失败1：', err.message);
     } else {
         console.log('成功连接到 SQLite 数据库');
     }

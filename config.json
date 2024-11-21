@@ -1,5 +1,8 @@
 {
     "port": 3000,
-    "mnemonic" : "13412312321321312321321312312312323"
+    "mnemonic" : "allen don is the best man",
+    "defaultAddressCount": 1,
+    "referMintDBPath": "./mint.sqlite3",
+    "runeMintDBPath" : "./database.db"
 }
   
