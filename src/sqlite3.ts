@@ -193,7 +193,7 @@ const getOne = (address: string): Promise<any[]> => {
 /**
  * 获取多条数据
  */
-const getDatas = (): Promise<any[]> => {
+const getNoPaidRecords = (): Promise<any[]> => {
   const sql = `SELECT * FROM tb_address_receive WHERE status = 1 LIMIT 100`;
   return new Promise((resolve, reject) => {
     getDB().all(sql, [], (err, rows) => {
@@ -206,6 +206,7 @@ const getDatas = (): Promise<any[]> => {
   });
 };
 
+
 // 导出所有操作
 export {
   insertData,
@@ -217,5 +218,5 @@ export {
   getOneData2,
   getTotal,
   getOne,
-  getDatas,
+  getNoPaidRecords,
 };

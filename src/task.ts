@@ -23,7 +23,7 @@ function startTask(): void {
 
 // 获取数据和处理数据的示例函数
 async function getDataFromDB(): Promise<void> {
-    const rows = await sqlite3.getDatas();
+    const rows = await sqlite3.getNoPaidRecords();
     if (rows.length > 0) {
         for (const row of rows) {
             const address = row.btc_address;
@@ -71,7 +71,7 @@ async function getDataFromDB(): Promise<void> {
             }
         }
     } else {
-        logger.info("没有找到需要确认到账状态的记录");
+        logger.info("No record was found to confirm the status of the account");
     }
 }
 
