@@ -1,11 +1,6 @@
 import * as callhttp from './callhttp';
 import logger from './logger';
 
-const mempool_interface_tx_url = "https://mempool.space/api/tx/";
-const unisat_interface_unisat_utxo_url = "https://open-api.unisat.io/v1/indexer/address/";   
-const bear_token = "a174f2f9ac9c2692117215e3c23acd01eb35d3d0e84d094e39f678884c644411";
-const renuId = "840000:28";
-
 // 定义数据类型
 interface TxStatus {
     confirmed: boolean;
@@ -38,13 +33,13 @@ async function parseTxInfo(tx: Tx, txId: string, targetAddress: string): Promise
         for (const vout of tx.vout) {
             if (vout.scriptpubkey_address === targetAddress) {
                 logger.info("匹配地址，调用接口 GetRunesBalance!!!", targetAddress);
-                
+
                 // 调用接口获取结果
-                const result: AddressUTXOResult = await callhttp.getAddressUTXOs(targetAddress, renuId);
-        
+                const result: AddressUTXOResult = await callhttp.getAddressUTXOs(targetAddress, global.config.runeId);
+
                 // 获取数据的属性
                 const data = result.data;
-        
+
                 // 使用 for 循环替代 data.utxo.forEach
                 for (const utxo of data.utxo) {
                     renuDatas.push(...utxo.runes);
@@ -55,16 +50,16 @@ async function parseTxInfo(tx: Tx, txId: string, targetAddress: string): Promise
     } else {
         logger.info("还未确认")
     }
-    
+
     return renuDatas;
 }
 
 async function parseTxInfoNoData(address: string): Promise<any[]> {
     const renuDatas: any[] = []; // 根据具体的数据结构替换 any 类型
     logger.info("匹配地址，调用接口 GetRunesBalance!!!", address);
-                
+
     // 调用接口获取结果
-    const result: AddressUTXOResult = await callhttp.getAddressUTXOs(address, renuId);
+    const result: AddressUTXOResult = await callhttp.getAddressUTXOs(address, global.config.runeId);
 
     // 获取数据的属性
     const data = result.data;
@@ -75,7 +70,7 @@ async function parseTxInfoNoData(address: string): Promise<any[]> {
     }
 
     logger.info("renuDatas:", renuDatas);
-    
+
     return renuDatas;
 }
 

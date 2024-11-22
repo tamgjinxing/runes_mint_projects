@@ -2,7 +2,8 @@
     "port": 3000,
     "mnemonic" : "allen don is the best man",
     "defaultAddressCount": 1,
-    "referMintDBPath": "./mint.sqlite3",
-    "runeMintDBPath" : "./database.db"
+    "referMintDBPath": "./home/appl/nutshell/data/mint/int.sqlite3",
+    "runeMintDBPath" : "./database.db",
+    "unisatOpenApiToken":"a174f2f9ac9c2692117215e3c23acd01eb35d3d0e84d094e39f678884c644411",
+    "runeId":"840000:28"
 }
-  

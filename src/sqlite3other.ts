@@ -31,7 +31,7 @@ const updateStatus = (quote: string, isPaid: number, state: string, nowTime: num
         if (err) {
             console.error('更新数据失败：', err.message);
         } else {
-            console.log(`更新数据成功，影响的行数: ${this.changes}`);
+            logger.info(`更新数据成功，影响的行数:`, this.changes);
         }
     });
 };

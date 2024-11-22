@@ -56,9 +56,6 @@ function generateRandomNumber(): number {
 async function genAddressAndStore() {
   const row = await sqlite3.getTotal();
   const existCount = row[0].total;
-
-  console.log("existCount:", existCount);
-
   const addressSet = await generateReceiveAddress(
     global.config.mnemonic,
     global.config.defaultAddressCount,
@@ -73,12 +70,10 @@ async function getAddressFromDB(): Promise<string> {
   // 还有未使用的地址
   while (true) {
     const row = await sqlite3.getOneData2(); // 从数据库获取一条数据
-    console.log(global.config.mnemonic);
 
     if (row && row.length > 0) {
       // 如果有数据，更新状态并返回地址
       sqlite3.updateStatus(row[0].btc_address, 1);
-      console.log("row", row[0]);
       return row[0].btc_address;
     } else {
       // 如果没有数据，生成新的地址

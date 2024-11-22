@@ -5,4 +5,6 @@ export interface Config {
     defaultAddressCount: number;
     referMintDBPath: string;
     runeMintDBPath: string;
+    unisatOpenApiToken: string;
+    runeId: string;
 }

@@ -155,7 +155,6 @@ export async function waitUntilUTXO(address: string) {
         const data: IUTXO[] = response.data
           ? JSON.parse(response.data)
           : undefined;
-        console.log(data);
         if (data.length > 0) {
           resolve(data);
           clearInterval(intervalId);
@@ -189,9 +188,7 @@ export async function signAndSend(
     psbt.finalizeAllInputs();
 
     const tx = psbt.extractTransaction();
-    console.log(`Broadcasting Transaction Hex: ${tx.toHex()}`);
     const txid = await broadcast(tx.toHex());
-    console.log(`Success! Txid is ${txid}`);
   } else {
     // in browser
 
@@ -205,11 +202,7 @@ export async function signAndSend(
         ],
       });
 
-      console.log("signed psbt", res);
-
       res = await window.unisat.pushPsbt(res);
-
-      console.log("txid", res);
     } catch (e) {
       console.log(e);
     }

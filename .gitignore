@@ -130,3 +130,4 @@ dist
 .yarn/install-state.gz
 .pnp.*
 database.db
+mint.sqlite3
