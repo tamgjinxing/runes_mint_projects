@@ -1,5 +1,6 @@
 import sqlite3 from "sqlite3";
 import logger from "./logger";
+import { UTXO } from "./model";
 
 let db: sqlite3.Database | null = null;
 
@@ -15,7 +16,7 @@ export const initializeDB = (): void => {
       logger.info("Successfully connected to SQLite database");
 
       // 确保初始化时创建表
-      createTable();
+      createTables();
     }
   });
 };
@@ -23,29 +24,49 @@ export const initializeDB = (): void => {
 /**
  * 创建表 `tb_address_receive`
  */
-const createTable = (): void => {
+const createTables = (): void => {
   if (!db) {
     throw new Error("Database not initialized. Call initializeDB() first.");
   }
 
-  const sql = `
-    CREATE TABLE IF NOT EXISTS tb_address_receive (
-      btc_address VARCHAR(64) PRIMARY KEY,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      tx_id VARCHAR(64),
-      quote VARCHAR(64),
-      update_time DATETIME,
-      status INTEGER DEFAULT 0
-    )`;
+  const tables = [
+    {
+      name: "tb_address_receive",
+      sql: `
+        CREATE TABLE IF NOT EXISTS tb_address_receive (
+          btc_address VARCHAR(64) PRIMARY KEY,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          tx_id VARCHAR(64),
+          quote VARCHAR(64),
+          amount DOUBLE DEFAULT 0,
+          update_time DATETIME,
+          status INTEGER DEFAULT 0
+        )`,
+    },
+    {
+      name: "tb_address_utxos",
+      sql: `
+        CREATE TABLE IF NOT EXISTS tb_address_utxos (
+          txid varchar(64) PRIMARY KEY,  
+          btc_address VARCHAR(64) default null, 
+          vout INTEGER ,
+          scriptPk VARCHAR(64)   ,
+          satoshi number
+        )`,
+    },
+  ];
 
-  db.run(sql, (err) => {
-    if (err) {
-      logger.error("Failed to create table:", err.message);
-    } else {
-      logger.info("Table 'tb_address_receive' created successfully");
-    }
+  tables.forEach((table) => {
+    getDB().run(table.sql, (err) => {
+      if (err) {
+        logger.error(`Failed to create table '${table.name}':`, err.message);
+      } else {
+        logger.info(`Table '${table.name}' created successfully`);
+      }
+    });
   });
 };
+
 
 const getDB = (): sqlite3.Database => {
   if (!db) {
@@ -68,12 +89,34 @@ const insertData = (btcAddress: string): void => {
   });
 };
 
+const saveUTXO = (utxoBean: UTXO): void => {
+  const sql = `INSERT INTO tb_address_utxos (txid,btc_address,vout,scriptPk,satoshi) VALUES (?,?,?,?,?)`;
+  getDB().run(sql, [utxoBean.txid, utxoBean.address, utxoBean.vout, utxoBean.scriptPk, utxoBean.satoshi], function (this: sqlite3.RunResult, err: Error | null) {
+    if (err) {
+      logger.error("Failed to insert data:", err.message);
+    } else {
+      logger.info("Data inserted successfully, Row ID:", this.lastID);
+    }
+  });
+};
+
 /**
  * 更新状态
  */
 const updateStatus = (btcAddress: string, status: number): void => {
   const sql = `UPDATE tb_address_receive SET status = ?, update_time = DATETIME('now') WHERE btc_address = ?`;
   getDB().run(sql, [status, btcAddress], function (this: sqlite3.RunResult, err: Error | null) {
+    if (err) {
+      logger.error("Failed to update status:", err.message);
+    } else {
+      logger.info(`Status updated successfully, Rows affected: ${this.changes}`);
+    }
+  });
+};
+
+const updateStatusAndAmount = (btcAddress: string, status: number, amount: number): void => {
+  const sql = `UPDATE tb_address_receive SET status = ?,amount=? , update_time = DATETIME('now') WHERE btc_address = ?`;
+  getDB().run(sql, [status, amount, btcAddress], function (this: sqlite3.RunResult, err: Error | null) {
     if (err) {
       logger.error("Failed to update status:", err.message);
     } else {
@@ -194,7 +237,34 @@ const getOne = (address: string): Promise<any[]> => {
  * 获取多条数据
  */
 const getNoPaidRecords = (): Promise<any[]> => {
-  const sql = `SELECT * FROM tb_address_receive WHERE status = 1 LIMIT 100`;
+  const sql = `SELECT * FROM tb_address_receive WHERE status = 0 LIMIT 1`;
+  return new Promise((resolve, reject) => {
+    getDB().all(sql, [], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+};
+
+
+const getUTXOsAddressEquals = (runeCount: number): Promise<any[]> => {
+  const sql = `SELECT * FROM tb_address_receive WHERE status = 2 and amount = ? limit 1`;
+  return new Promise((resolve, reject) => {
+    getDB().all(sql, [runeCount], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+};
+
+const getUTXOsAddressBigger = (runeCount: number): Promise<any[]> => {
+  const sql = `SELECT * FROM tb_address_receive WHERE status = 2 and amount > ? order by amount asc limit 1`;
   return new Promise((resolve, reject) => {
     getDB().all(sql, [], (err, rows) => {
       if (err) {
@@ -211,6 +281,7 @@ const getNoPaidRecords = (): Promise<any[]> => {
 export {
   insertData,
   updateStatus,
+  updateStatusAndAmount,
   updateTxId,
   updateStatusAndQuote,
   updateQuote,
@@ -219,4 +290,7 @@ export {
   getTotal,
   getOne,
   getNoPaidRecords,
+  getUTXOsAddressBigger,
+  getUTXOsAddressEquals,
+  saveUTXO
 };

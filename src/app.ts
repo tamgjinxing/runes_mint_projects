@@ -9,6 +9,7 @@ import * as sqlite3 from "./sqlite3";
 import addressRoutes from "./routes/addressRoutes";
 import { Config } from "./types";
 import { initializeReferDB } from "./sqlite3other";
+import { getDataFromDB } from "./task";
 
 // 创建 Express 应用
 const app = express();
@@ -18,6 +19,7 @@ app.use(express.json());
 sqlite3.initializeDB();
 
 initializeReferDB();
+
 
 // 挂载路由
 app.use("/", addressRoutes);

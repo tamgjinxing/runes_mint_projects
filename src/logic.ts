@@ -1,5 +1,6 @@
 import * as callhttp from './callhttp';
 import logger from './logger';
+import { UTXO, transformUTXO } from "./model";
 
 // 定义数据类型
 interface TxStatus {
@@ -54,7 +55,7 @@ async function parseTxInfo(tx: Tx, txId: string, targetAddress: string): Promise
     return renuDatas;
 }
 
-async function parseTxInfoNoData(address: string): Promise<any[]> {
+async function parseTxInfoNoData(address: string): Promise<UTXO[]> {
     const renuDatas: any[] = []; // 根据具体的数据结构替换 any 类型
     logger.info("匹配地址，调用接口 GetRunesBalance!!!", address);
 
@@ -64,14 +65,16 @@ async function parseTxInfoNoData(address: string): Promise<any[]> {
     // 获取数据的属性
     const data = result.data;
 
-    // 使用 for 循环替代 data.utxo.forEach
-    for (const utxo of data.utxo) {
-        renuDatas.push(...utxo.runes);
-    }
+    const utxoArray: UTXO[] = transformUTXO(result.data.utxo);
+    return utxoArray;
+    // // 使用 for 循环替代 data.utxo.forEach
+    // for (const utxo of data.utxo) {
+    //     renuDatas.push(...utxo.runes);
+    // }
 
-    logger.info("renuDatas:", renuDatas);
+    // logger.info("renuDatas:", renuDatas);
 
-    return renuDatas;
+    // return renuDatas;
 }
 
 // 导出所有操作

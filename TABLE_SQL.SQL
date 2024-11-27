@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS tb_address_receive (
   status INTEGER DEFAULT 0                    -- 状态，0：未使用 1：前端已使用 2：支付成功 默认为 0（未使用）
 );
 
-
 /**
 字段说明
 btc_address：接收地址，使用 TEXT 类型，并作为主键，确保地址唯一。
@@ -17,3 +16,11 @@ status：状态，使用 INTEGER 类型，初始默认值为 0。状态值说明
 1：前端已调用
 2：支付成功
 ***/
+
+CREATE TABLE IF NOT EXISTS tb_address_utxos (
+  tx_id varchar(64）) PRIMARY KEY,           -- 接收地址，设为主键，确保唯一性
+  btc_address VARCHAR(64) default null, -- 交易id
+  vout INTEGER DEFAULT 0,
+  scriptPk VARCHAR(64)   ,              -- 状态，0：未使用 1：前端已使用 2：支付成功 默认为 0（未使用）
+  satoshi number
+);
