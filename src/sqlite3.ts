@@ -1,23 +1,36 @@
 import sqlite3 from "sqlite3";
 import logger from "./logger";
-import { UTXO } from "./model";
+import { UTXO, AddressIndexBean } from "./model";
 
 let db: sqlite3.Database | null = null;
 
 // 初始化数据库连接
-export const initializeDB = (): void => {
-  const path = global.config.runeMintDBPath;
-  logger.info("Database path:", path);
+export const initializeDB = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+      const path = global.config.runeMintDBPath;
+      logger.info("Database path:", path);
 
-  db = new sqlite3.Database(path, (err: Error | null) => {
-    if (err) {
-      logger.error("Failed to connect to database:", err.message);
-    } else {
-      logger.info("Successfully connected to SQLite database");
+      if (!path) {
+          const error = new Error("数据库路径未定义");
+          logger.error(error.message);
+          reject(error);
+          return;
+      }
 
-      // 确保初始化时创建表
-      createTables();
-    }
+      try {
+          db = new sqlite3.Database(path, (err: Error | null) => {
+              if (err) {
+                  logger.error("连接数据库失败:", err.message);
+                  reject(err);
+              } else {
+                  logger.info("成功连接到 SQLite 数据库");
+                  resolve();
+              }
+          });
+      } catch (error) {
+          logger.error("创建数据库连接时发生错误:", error);
+          reject(error);
+      }
   });
 };
 
@@ -34,6 +47,7 @@ const createTables = (): void => {
       name: "tb_address_receive",
       sql: `
         CREATE TABLE IF NOT EXISTS tb_address_receive (
+          address_index number default 1,
           btc_address VARCHAR(64) PRIMARY KEY,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           tx_id VARCHAR(64),
@@ -51,7 +65,8 @@ const createTables = (): void => {
           btc_address VARCHAR(64) default null, 
           vout INTEGER ,
           scriptPk VARCHAR(64)   ,
-          satoshi number
+          satoshi number,
+          runes TEXT
         )`,
     },
   ];
@@ -78,9 +93,9 @@ const getDB = (): sqlite3.Database => {
 /**
  * 插入一条数据
  */
-const insertData = (btcAddress: string): void => {
-  const sql = `INSERT INTO tb_address_receive (btc_address) VALUES (?)`;
-  getDB().run(sql, [btcAddress], function (this: sqlite3.RunResult, err: Error | null) {
+const insertData = (addressIndexBean: AddressIndexBean): void => {
+  const sql = `INSERT INTO tb_address_receive (address_index, btc_address) VALUES (?,?)`;
+  getDB().run(sql, [addressIndexBean.index, addressIndexBean.address], function (this: sqlite3.RunResult, err: Error | null) {
     if (err) {
       logger.error("Failed to insert data:", err.message);
     } else {
@@ -90,8 +105,8 @@ const insertData = (btcAddress: string): void => {
 };
 
 const saveUTXO = (utxoBean: UTXO): void => {
-  const sql = `INSERT INTO tb_address_utxos (txid,btc_address,vout,scriptPk,satoshi) VALUES (?,?,?,?,?)`;
-  getDB().run(sql, [utxoBean.txid, utxoBean.address, utxoBean.vout, utxoBean.scriptPk, utxoBean.satoshi], function (this: sqlite3.RunResult, err: Error | null) {
+  const sql = `INSERT INTO tb_address_utxos (txid,btc_address,vout,scriptPk,satoshi,runes) VALUES (?,?,?,?,?,?)`;
+  getDB().run(sql, [utxoBean.txid, utxoBean.address, utxoBean.vout, utxoBean.scriptPk, utxoBean.satoshi, JSON.stringify(utxoBean.runes)], function (this: sqlite3.RunResult, err: Error | null) {
     if (err) {
       logger.error("Failed to insert data:", err.message);
     } else {
@@ -189,7 +204,7 @@ const getOneData = (): void => {
  * 获取一条数据（返回 Promise）
  */
 const getOneData2 = (): Promise<any[]> => {
-  const sql = `SELECT * FROM tb_address_receive WHERE status = 0 LIMIT 1`;
+  const sql = `SELECT * FROM tb_address_receive WHERE status = 0 order by address_index asc  LIMIT 1`;
   return new Promise((resolve, reject) => {
     getDB().all(sql, [], (err, rows) => {
       if (err) {
@@ -237,7 +252,7 @@ const getOne = (address: string): Promise<any[]> => {
  * 获取多条数据
  */
 const getNoPaidRecords = (): Promise<any[]> => {
-  const sql = `SELECT * FROM tb_address_receive WHERE status = 0 LIMIT 1`;
+  const sql = `SELECT * FROM tb_address_receive WHERE status = 1 LIMIT 1`;
   return new Promise((resolve, reject) => {
     getDB().all(sql, [], (err, rows) => {
       if (err) {
@@ -251,7 +266,10 @@ const getNoPaidRecords = (): Promise<any[]> => {
 
 
 const getUTXOsAddressEquals = (runeCount: number): Promise<any[]> => {
-  const sql = `SELECT * FROM tb_address_receive WHERE status = 2 and amount = ? limit 1`;
+  // SELECT a.btc_address,b.txid,b.vout,b.scriptPk, b.satoshi FROM tb_address_receive a left join tb_address_utxo b on a.btc_address = b.btc_address WHERE a.status = 2 and a.amount = ? limit 1
+  // const sql = `SELECT * FROM tb_address_receive WHERE status = 2 and amount = ? limit 1`;
+  const sql = "SELECT a.btc_address,b.txid,b.vout,b.scriptPk, b.satoshi,b.runes FROM tb_address_receive a left join tb_address_utxos b on a.btc_address = b.btc_address WHERE a.status = 2 and a.amount = ? limit 1";
+
   return new Promise((resolve, reject) => {
     getDB().all(sql, [runeCount], (err, rows) => {
       if (err) {
@@ -264,6 +282,7 @@ const getUTXOsAddressEquals = (runeCount: number): Promise<any[]> => {
 };
 
 const getUTXOsAddressBigger = (runeCount: number): Promise<any[]> => {
+  //sql = SELECT a.btc_address,b.txid,b.vout,b.scriptPk, b.satoshi FROM tb_address_receive a left join tb_address_utxo b on a.btc_address = b.btc_address WHERE a.status = 2 and a.amount > ? order by a.amount asc limit 1
   const sql = `SELECT * FROM tb_address_receive WHERE status = 2 and amount > ? order by amount asc limit 1`;
   return new Promise((resolve, reject) => {
     getDB().all(sql, [], (err, rows) => {
@@ -272,6 +291,63 @@ const getUTXOsAddressBigger = (runeCount: number): Promise<any[]> => {
       } else {
         resolve(rows);
       }
+    });
+  });
+};
+
+const getUTXOsAddressLessThan = (runeCount: number): Promise<any[]> => {
+  //sql = SELECT a.btc_address,b.txid,b.vout,b.scriptPk, b.satoshi FROM tb_address_receive a left join tb_address_utxo b on a.btc_address = b.btc_address WHERE a.status = 2 and a.amount < ? 
+  const sql = `SELECT * FROM tb_address_receive WHERE status = 2 and amount < ? `;
+  return new Promise((resolve, reject) => {
+    getDB().all(sql, [], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+};
+
+// 查找满足条件的记录
+const findClosestRecords = (targetAmount: number) => {
+  return new Promise<any[]>((resolve, reject) => {
+    // Step 1: 查找 amount = targetAmount 的记录
+    getDB().all('SELECT * FROM tb_address_receive WHERE amount = ?', [targetAmount], (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      // 如果找到了，直接返回这些记录
+      if (rows.length > 0) {
+        resolve(rows);
+        return;
+      }
+
+      // Step 2: 如果没有，查找 amount > targetAmount 的记录
+      getDB().all('SELECT * FROM tb_address_receive WHERE amount > ? LIMIT 1', [targetAmount], (err, rows) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        // 如果找到了，返回这个记录
+        if (rows.length > 0) {
+          resolve(rows);
+          return;
+        }
+
+        // Step 3: 如果没有，查找与 targetAmount 之差最小的记录
+        getDB().all('SELECT *, ABS(amount - ?) AS diff FROM tb_address_receive ORDER BY diff LIMIT 5', [targetAmount], (err, rows) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          resolve(rows); // 返回最接近的记录，最多返回 5 行
+        });
+      });
     });
   });
 };
@@ -292,5 +368,7 @@ export {
   getNoPaidRecords,
   getUTXOsAddressBigger,
   getUTXOsAddressEquals,
-  saveUTXO
+  saveUTXO,
+  findClosestRecords,
+  getUTXOsAddressLessThan
 };

@@ -4,7 +4,7 @@ import * as sqlite3other from './sqlite3other';
 import * as callhttp from './callhttp';
 import * as logic from './logic';
 import logger from './logger';
-import { UTXO } from "./model";
+import { UTXO, SubUTXO } from "./model";
 
 async function checking(): Promise<void> {
     try {
@@ -17,9 +17,9 @@ async function checking(): Promise<void> {
 
 function startTask(): void {
     // 每2分钟执行一次任务
-    const task = cron.schedule('*/2 * * * *', checking);
+    const task = cron.schedule('*/10 * * * *', checking);
     task.start(); // 启动任务
-    logger.info("任务已启动，每2分钟检查一次数据库");
+    logger.info("任务已启动,每10分钟检查一次数据库是否有未到账的记录到账了");
 }
 
 // 获取数据和处理数据的示例函数
@@ -27,7 +27,7 @@ async function getDataFromDB(): Promise<void> {
     const rows = await sqlite3.getNoPaidRecords();
     if (rows.length > 0) {
         for (const row of rows) {
-            const address = "bc1pxugggvh086zy8esww9rkj8gmrhr6325ahx4c82lcjgwxv6km40eq42jwk5";
+            const address = row.btc_address;
             const txId = row.tx_id;
             const status = row.status;
             const quote = row.quote;
@@ -55,8 +55,6 @@ async function getDataFromDB(): Promise<void> {
                 let spacedRune = "";
 
                 for (const utxo of runeDatas) {
-
-
                     let txId = utxo.txid;
                     let btc_address = utxo.address;
                     let satoshi = utxo.satoshi;
@@ -67,28 +65,29 @@ async function getDataFromDB(): Promise<void> {
                         for (const rune of utxo.runes) {
                             spacedRune = rune.spacedRune;
                             total += Number(rune.amount);
+
                             logger.info("收到符文Name:", spacedRune, "共", total, "个");
+                        }
 
-                            if (total > 0) {
-                                sqlite3.updateStatusAndAmount("bc1pffutyp5fskrpk4av4syycxdg73czj8pe9p72k5226mqfyrzms6zqntpe06", 2, total);
+                        if (total > 0) {
+                            sqlite3.updateStatusAndAmount(address, 2, total);
 
-                                const currentDate = new Date();
-                                const currentSeconds = currentDate.getSeconds();
-                                sqlite3other.updateStatus(quote, 1, "PAID", currentSeconds);
+                            const currentDate = new Date();
+                            const currentSeconds = currentDate.getSeconds();
+                            sqlite3other.updateStatus(quote, 1, "PAID", currentSeconds);
 
-                                logger.info("修改mint_quote表中quote=", quote, "的paid=1，state=paid");
+                            logger.info("修改mint_quote表中quote=", quote, "的paid=1,state=paid");
 
-                                const utxoBean: UTXO = {
-                                    address: address,
-                                    txid: txId,
-                                    vout: vout,
-                                    satoshi: satoshi,
-                                    scriptPk: scriptPk,
-                                    runes: []
-                                };
+                            const utxoBean: UTXO = {
+                                address: address,
+                                txid: txId,
+                                vout: vout,
+                                satoshi: satoshi,
+                                scriptPk: scriptPk,
+                                runes: utxo.runes
+                            };
 
-                                sqlite3.saveUTXO(utxoBean);
-                            }
+                            sqlite3.saveUTXO(utxoBean);
                         }
                     }
                 }

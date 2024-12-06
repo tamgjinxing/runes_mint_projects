@@ -4,15 +4,31 @@ import logger from "./logger";
 let referDB: sqlite3.Database | null = null;
 
 // 初始化数据库连接
-export const initializeReferDB = (): void => {
-    const path = global.config.referMintDBPath;
-    logger.info("Database path:", path);
+export const initializeReferDB = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        const path = global.config.referMintDBPath;
+        logger.info("Database path:", path);
 
-    referDB = new sqlite3.Database(path, (err: Error | null) => {
-        if (err) {
-            logger.error("Failed to connect to database:", err.message);
-        } else {
-            logger.info("Successfully connected to SQLite database");
+        if (!path) {
+            const error = new Error("数据库路径未定义");
+            logger.error(error.message);
+            reject(error);
+            return;
+        }
+
+        try {
+            referDB = new sqlite3.Database(path, (err: Error | null) => {
+                if (err) {
+                    logger.error("连接数据库失败:", err.message);
+                    reject(err);
+                } else {
+                    logger.info("成功连接到 SQLite 数据库");
+                    resolve();
+                }
+            });
+        } catch (error) {
+            logger.error("创建数据库连接时发生错误:", error);
+            reject(error);
         }
     });
 };

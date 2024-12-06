@@ -5,20 +5,24 @@ import * as ecc from 'tiny-secp256k1';
 import logger from './logger';
 import * as sqlite3 from "./sqlite3";
 import * as sqlite3other from './sqlite3other';
+import { AddressIndexBean } from "./model"
+import { ECPairFactory, ECPairAPI } from "ecpair";
+
 
 // 初始化 ECC 库
 bitcoin.initEccLib(ecc);
+const ECPair: ECPairAPI = ECPairFactory(ecc);
 
 // 使用 tiny-secp256k1 初始化 bip32
 const bip32 = BIP32Factory(ecc);
 
 // 定义生成地址的异步函数
-async function generateReceiveAddress(mnemonic: string, index: number, existCount: number): Promise<Set<string>> {
+async function generateReceiveAddress(mnemonic: string, index: number, existCount: number): Promise<Set<AddressIndexBean>> {
   const seed = await bip39.mnemonicToSeed(mnemonic);
 
   // 使用 BIP32 从种子生成根节点
   const root = bip32.fromSeed(seed, bitcoin.networks.bitcoin);
-  const resultSet = new Set<string>();
+  const resultSet = new Set<AddressIndexBean>();
 
   logger.info("existCount::::::", existCount);
   for (let i = 1; i <= index + existCount; i++) {
@@ -37,9 +41,15 @@ async function generateReceiveAddress(mnemonic: string, index: number, existCoun
       network: bitcoin.networks.bitcoin,
     });
 
+    let addressIndexBean: AddressIndexBean;
+
     if (address) {
-      logger.info("Taproot Address (bc1p):", address);
-      resultSet.add(address);
+      logger.info("Taproot Address Index:", i, + ",(bc1p):", address);
+      addressIndexBean = {
+        index: i,
+        address: address
+      };
+      resultSet.add(addressIndexBean);
     }
   }
 
@@ -56,13 +66,13 @@ function generateRandomNumber(): number {
 async function genAddressAndStore() {
   const row = await sqlite3.getTotal();
   const existCount = row[0].total;
-  const addressSet = await generateReceiveAddress(
+  const addressIndexBeans = await generateReceiveAddress(
     global.config.mnemonic,
     global.config.defaultAddressCount,
     existCount
   );
-  for (const subAddress of addressSet) {
-    sqlite3.insertData(subAddress);
+  for (const addressIndexBean of addressIndexBeans) {
+    sqlite3.insertData(addressIndexBean);
   }
 }
 
@@ -98,6 +108,16 @@ async function paid(address: string): Promise<void> {
       sqlite3other.updateStatus(quote, 1, "PAID", timestampInSeconds)
     }
   }
+}
+
+export function getPrivateByMnemonic(mnemonic: string): string{
+  const seed = bip39.mnemonicToSeedSync(mnemonic);
+  const root = bip32.fromSeed(seed);
+  const masterPrivateKey = root.toBase58();  // 这是主私钥
+  const child = root.derivePath("m/86'/0'/0'/0/0");
+  const wif = ECPair.fromPrivateKey(child.privateKey!).toWIF();  // 使用私钥生成 WIF 格式
+  console.log('WIF Private Key for Main Address:', wif);
+  return wif;
 }
 
 export { generateReceiveAddress, generateRandomNumber, genAddressAndStore, getAddressFromDB, paid };
